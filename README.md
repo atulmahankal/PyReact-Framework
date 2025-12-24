@@ -87,7 +87,7 @@ This starts:
 
 | Service    | URL                   | Description      |
 | ---------- | --------------------- | ---------------- |
-| Nginx      | http://localhost:80   | API Gateway      |
+| Nginx      | http://localhost      | API Gateway      |
 | Backend    | http://localhost:8000 | FastAPI Backend  |
 | Frontend   | http://localhost:3000 | Next.js Frontend |
 | PostgreSQL | localhost:5432        | Database         |

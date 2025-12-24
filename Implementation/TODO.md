@@ -1,4 +1,4 @@
-# SampleApp - Development TODO
+# Implementation TODO (Append-only)
 
 ## MVP Phase
 
