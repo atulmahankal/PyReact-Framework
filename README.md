@@ -1,6 +1,6 @@
 # SampleApp
 
-A full-stack application template with authentication, RBAC, and admin panel.
+A full-stack application template with authentication, RBAC, admin panel, and API Gateway architecture.
 
 ## Features
 
@@ -31,6 +31,35 @@ A full-stack application template with authentication, RBAC, and admin panel.
 - **Administrator**: User and role management
 - **Standard User**: Basic access
 
+### Logging
+
+- Daily rotating log files with auto-cleanup
+- Separate error logs (`error-YYYY-MM-DD.log`)
+- Configurable retention period
+- JSON format support for production
+
+## Architecture
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Browser   │────▶│   Nginx     │────▶│  Frontend   │
+│             │     │ (Gateway)   │     │  (Next.js)  │
+└─────────────┘     └──────┬──────┘     └─────────────┘
+                          │
+                          │ /api/*
+                          ▼
+                   ┌─────────────┐     ┌─────────────┐
+                   │   Backend   │────▶│ PostgreSQL  │
+                   │  (FastAPI)  │     │   Database  │
+                   └──────┬──────┘     └─────────────┘
+                          │
+                          ▼
+                   ┌─────────────┐
+                   │    Redis    │
+                   │ (Cache/Queue)│
+                   └─────────────┘
+```
+
 ## Quick Start
 
 ### Prerequisites
@@ -40,10 +69,12 @@ A full-stack application template with authentication, RBAC, and admin panel.
 ### 1. Clone and Configure
 
 ```bash
-# Copy environment file
+# Copy environment files
+cp .env.example .env
 cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 
-# Edit backend/.env if needed (defaults work for development)
+# Edit files if needed (defaults work for development)
 ```
 
 ### 2. Start Development Environment
@@ -54,26 +85,27 @@ docker compose up -d
 
 This starts:
 
-| Service     | URL                   | Description      |
-| ----------- | --------------------- | ---------------- |
-| PostgreSQL  | localhost:5432        | Database         |
-| Redis       | localhost:6379        | Cache & Queue    |
-| Backend API | http://localhost:8000 | FastAPI Backend  |
-| Frontend    | http://localhost:3000 | Next.js Frontend |
-| Mailpit     | http://localhost:8025 | Email Testing UI |
+| Service    | URL                   | Description      |
+| ---------- | --------------------- | ---------------- |
+| Nginx      | http://localhost:80   | API Gateway      |
+| Backend    | http://localhost:8000 | FastAPI Backend  |
+| Frontend   | http://localhost:3000 | Next.js Frontend |
+| PostgreSQL | localhost:5432        | Database         |
+| Redis      | localhost:6379        | Cache & Queue    |
+| Mailpit    | http://localhost:8025 | Email Testing UI |
 
 ### 3. Access the Application
 
-- **Login**: http://localhost:3000/login
+- **Frontend**: http://localhost/ (via nginx)
 - **API Docs**: http://localhost:8000/docs
 - **Email Inbox**: http://localhost:8025
 
-**Default Super Admin:**
+**Default Super Admin:** (if not configured in ./.env)
 
 - Email: `admin@example.com`
 - Password: `Admin@123`
-  (If not configured in .env)
-  > Note: Migrations and seed data run automatically on startup.
+
+> Note: Migrations and seed data run automatically on startup.
 
 ## Email Testing with Mailpit
 
@@ -92,37 +124,61 @@ Test the password reset flow:
 
 ```
 BaseApp/
-├── CLAUDE.md              # Claude Code context
-├── docker-compose.yml     # Development containers
+├── .env.example           # Docker Compose ports config
+├── docker-compose.yml     # Container orchestration
+├── nginx.conf             # API Gateway configuration
 ├── README.md
+├── CLAUDE.md              # Claude Code context
+├── PROJECT_CONTEXT.md     # Project documentation
 │
-├── docs/                  # Referance documentations
-│   └──API/                # REST Client test files
+├── API/                   # REST Client test files
+│   ├── auth.rest
+│   ├── admin-users.rest
+│   ├── admin-rbac.rest
+│   └── admin-config.rest
 │
 ├── backend/               # FastAPI Backend
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── logs/              # Application logs (git-ignored)
+│   │   ├── app-YYYY-MM-DD.log
+│   │   └── error-YYYY-MM-DD.log
 │   ├── app/
-│   │   ├── api/          # API routes
-│   │   │   ├── auth.py   # Authentication endpoints
-│   │   │   └── admin/    # Admin API routes
-│   │   ├── models/       # SQLAlchemy models
-│   │   │   ├── user.py   # User model
-│   │   │   └── rbac.py   # Role & Permission models
-│   │   ├── tasks/        # Celery background tasks
-│   │   └── startup.py    # Auto-seed roles & permissions
-│   ├── alembic/          # Database migrations
-│   └── requirements.txt
+│   │   ├── main.py        # FastAPI app entry
+│   │   ├── config.py      # Settings (multi-DB support)
+│   │   ├── database.py    # Async SQLAlchemy
+│   │   ├── startup.py     # Auto-seed on startup
+│   │   ├── api/           # API routes
+│   │   │   ├── auth.py
+│   │   │   ├── users.py
+│   │   │   └── admin/
+│   │   ├── models/        # SQLAlchemy models
+│   │   ├── tasks/         # Celery background tasks
+│   │   └── utils/
+│   │       ├── logger.py  # Logging utility
+│   │       ├── encryption.py
+│   │       └── permissions.py
+│   └── alembic/           # Database migrations
 │
 └── frontend/              # Next.js 16 Frontend
-    ├── src/
-    │   ├── app/          # App Router pages
-    │   │   ├── login/    # Login page
-    │   │   ├── signup/   # Signup page
-    │   │   ├── dashboard/# User dashboard
-    │   │   ├── admin/    # Admin panel
-    │   │   └── profile/  # Profile redirect
-    │   ├── components/   # React components
-    │   └── lib/          # Utilities
-    └── package.json
+    ├── .env.example
+    ├── Dockerfile
+    ├── package.json
+    ├── logs/              # Application logs (git-ignored)
+    │   ├── app-YYYY-MM-DD.log
+    │   └── error-YYYY-MM-DD.log
+    └── src/
+        ├── app/           # App Router pages
+        │   ├── login/
+        │   ├── signup/
+        │   ├── dashboard/
+        │   ├── admin/
+        │   └── api/log/   # Client error logging endpoint
+        ├── components/
+        └── lib/
+            ├── api.ts
+            └── logger.ts  # Logging utility
 ```
 
 ## API Endpoints
@@ -151,7 +207,7 @@ Pre-configured request files are available in the [`API/`](API/) folder:
 | GET    | `/{id}`  | Get user details |
 | PATCH  | `/{id}`  | Update user      |
 
-### Roles & permissions (admin) ([`API/admin-rbac.rest`](API/admin-rbac.rest))
+### Admin: Roles & permissions ([`API/admin-rbac.rest`](API/admin-rbac.rest))
 
 | Method | Endpoint                      | Description                              |
 | ------ | ----------------------------- | ---------------------------------------- |
@@ -164,7 +220,7 @@ Pre-configured request files are available in the [`API/`](API/) folder:
 | POST   | `/users/{id}/roles/{role_id}` | Assign role to user                      |
 | DELETE | `/users/{id}/roles/{role_id}` | Remove role from user                    |
 
-### Configuration/settings (admin) ([`API/admin-config.rest`](API/admin-config.rest))
+### Admin: Configuration/settings ([`API/admin-config.rest`](API/admin-config.rest))
 
 | Method | Endpoint       | Description                    |
 | ------ | -------------- | ------------------------------ |
@@ -176,37 +232,29 @@ Pre-configured request files are available in the [`API/`](API/) folder:
 | PUT    | `/`            | Bulk update config items       |
 | POST   | `/clear-cache` | Clear cache and seed defaults  |
 
-**Quick Start:**
-
-1. Install the REST Client extension in VSCode
-2. Open any `.rest` file from `API/` folder
-3. Run the login request first to get a JWT token
-4. Copy the token and update the `@token` variable
-5. Click "Send Request" above any request to execute it
-
 ## Development Commands
 
 ```bash
 # View logs
-docker compose logs -f backend
-docker compose logs -f frontend
-docker compose logs -f celery
+docker compose logs -f nginx
+docker compose logs -f base-app-backend
+docker compose logs -f base-app-frontend
 
 # Restart services
-docker compose restart backend
-docker compose restart frontend
+docker compose restart base-app-backend
+docker compose restart base-app-frontend
 
 # Run backend shell
-docker compose exec backend bash
+docker compose exec base-app-backend bash
 
 # Create new migration
-docker compose exec backend alembic revision --autogenerate -m "description"
+docker compose exec base-app-backend alembic revision --autogenerate -m "description"
 
 # Access database
 docker compose exec base-app-db psql -U sampleapp -d sampleapp
 
 # Create additional super admin
-docker compose exec -it backend python -m app.create_admin
+docker compose exec base-app-backend python -m app.create_admin
 
 # Rebuild containers
 docker compose build --no-cache
@@ -215,23 +263,49 @@ docker compose up -d
 
 ## Environment Variables
 
-Key environment variables (see `backend/.env.example` for full list):
+Configuration is split across three `.env` files:
+
+### Root `.env` (Docker Compose Ports)
+
+| Variable            | Description      | Default |
+| ------------------- | ---------------- | ------- |
+| `NGINX_PORT`        | API Gateway port | 80      |
+| `BACKEND_PORT`      | Backend API port | 8000    |
+| `FRONTEND_PORT`     | Frontend port    | 3000    |
+| `DB_PORT`           | PostgreSQL port  | 5432    |
+| `REDIS_PORT`        | Redis port       | 6379    |
+| `MAILPIT_HTTP_PORT` | Mailpit UI port  | 8025    |
+
+### Backend `.env`
 
 | Variable              | Description            | Default                   |
 | --------------------- | ---------------------- | ------------------------- |
+| `DATABASE_DIALECT`    | DB type                | postgresql                |
+| `DATABASE_USER`       | DB username            | sampleapp                 |
+| `DATABASE_SECRET`     | DB password            | sampleapp                 |
 | `SECRET_KEY`          | JWT signing key        | (generate for production) |
+| `LOG_LEVEL`           | Logging level          | INFO                      |
+| `LOG_RETENTION_DAYS`  | Log cleanup after days | 30                        |
 | `SUPERADMIN_EMAIL`    | Initial admin email    | admin@example.com         |
 | `SUPERADMIN_PASSWORD` | Initial admin password | Admin@123                 |
-| `SMTP_HOST`           | Email server           | mailpit                   |
-| `SMTP_PORT`           | Email port             | 1025                      |
+
+### Frontend `.env`
+
+| Variable              | Description     | Default                 |
+| --------------------- | --------------- | ----------------------- |
+| `NEXT_PUBLIC_API_URL` | Backend API URL | http://localhost:80/api |
+| `LOG_LEVEL`           | Logging level   | info                    |
+| `LOG_RETENTION_DAYS`  | Log cleanup     | 30                      |
 
 ## Tech Stack
 
 - **Backend**: Python 3.12, FastAPI, SQLAlchemy 2.0, Celery
 - **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
-- **Database**: PostgreSQL 17
+- **Database**: PostgreSQL 17 (supports MySQL, MariaDB, SQLite)
 - **Cache/Queue**: Redis 8
+- **API Gateway**: Nginx
 - **Email Testing**: Mailpit
+- **Logging**: Pino (frontend), Python logging (backend)
 - **Infrastructure**: Docker Compose
 
 ## Production Deployment
@@ -244,13 +318,15 @@ For production:
    openssl rand -hex 32
    ```
 
-2. Configure real SMTP settings in `.env`
+2. Configure real SMTP settings in `backend/.env`
 
 3. Set `ENVIRONMENT=production` and `DEBUG=false`
 
 4. Use proper database credentials
 
 5. Configure CORS origins for your domain
+
+6. Set `JSON_LOGS=true` for structured logging
 
 ## License
 

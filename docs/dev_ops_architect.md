@@ -1,6 +1,7 @@
-# API-Gateway-based Microservices Architecture
+# API-Gateway-based Microservices + gRPC Architecture
 
 ## Architecture Overview
+
 This system follows an **API-Gateway-based Microservices Architecture with Database-per-Service isolation**. Each backend service owns its runtime, data, and deployment lifecycle. An NGINX API Gateway acts as the single public entry point.
 
 This design avoids schema coupling, enables independent scaling, and provides a clean evolution path toward async and event-driven systems.
@@ -54,17 +55,20 @@ graph TD
 ## Core Components
 
 ### API Gateway (NGINX)
+
 - Single public entry point
 - Path-based routing
 - Hides internal topology
 - Ready for auth, rate limiting, TLS
 
 ### Backend Services
+
 - One business domain per service
 - Independently deployable
 - No shared runtime or database
 
 ### Databases
+
 - PostgreSQL per service
 - Strong data ownership
 - Independent migrations
@@ -90,6 +94,6 @@ graph TD
 
 ---
 
-**Architecture Name:**  
-> API-Gateway-based Microservices Architecture with Database-per-Service
+**Architecture Name:**
 
+> API-Gateway-based Microservices Architecture with Database-per-Service

@@ -23,3 +23,10 @@ build/
 
 # Secrets
 .env
+
+# Logs
+logs/
+*.log
+
+# Data (database files)
+data/
